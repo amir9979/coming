@@ -13,7 +13,6 @@ import fr.inria.prophet4j.defined.original.OriginalFeature.CrossType;
 import fr.inria.prophet4j.defined.original.OriginalFeature.AtomicFeature;
 import fr.inria.prophet4j.defined.original.OriginalFeature.RepairFeature;
 import fr.inria.prophet4j.defined.original.OriginalFeature.ValueFeature;
-import fr.inria.prophet4j.defined.Structure.FeatureOption;
 import fr.inria.prophet4j.defined.Structure.FeatureVector;
 import fr.inria.prophet4j.defined.Structure.Repair;
 import fr.inria.prophet4j.defined.original.util.OriginalFeatureVisitor;
@@ -100,8 +99,6 @@ public class OriginalFeatureExtractor implements FeatureExtractor {
                 }
             }
         }
-        if (valueStr.contains("length") || valueStr.contains("size"))
-            valueFeatures.add(ValueFeature.SIZE_LITERAL_VF);
         assert(valueExprInfo.containsKey(valueStr));
         CtElement E = valueExprInfo.get(valueStr);
         if (E instanceof CtVariableAccess || E instanceof CtArrayAccess || E instanceof CtLocalVariable) {
@@ -111,28 +108,28 @@ public class OriginalFeatureExtractor implements FeatureExtractor {
                 valueFeatures.add(ValueFeature.GLOBAL_VARIABLE_VF);
             }
         } else if (E instanceof CtExecutableReference){
-            // fixme: ...
-            // to make CALLEE_AF be meaningful
+            // to make CALLEE_AF be meaningful todo improve
             if (((CtExecutableReference) E).getParameters().size() > 0){
                 valueFeatures.add(ValueFeature.LOCAL_VARIABLE_VF);
             }
         } else if (E instanceof CtIf){
-            // fixme: ...
-            // to make R_STMT_COND_AF be meaningful
+            // to make R_STMT_COND_AF be meaningful todo improve
             valueFeatures.add(ValueFeature.LOCAL_VARIABLE_VF);
         }
 //        if (E instanceof CtVariable) {
 //            if (E instanceof CtLocalVariable)
-//                valueFeatures.add(ValueFeature.LOCAL_VARIABLE_VF);
+//                valueFeatures.add(SchemaFeature.LOCAL_VARIABLE_VF);
 //            else
-//                valueFeatures.add(ValueFeature.GLOBAL_VARIABLE_VF);
+//                valueFeatures.add(SchemaFeature.GLOBAL_VARIABLE_VF);
 //        } else if (E instanceof CtVariableReference) {
 //            if (E instanceof CtLocalVariableReference)
-//                valueFeatures.add(ValueFeature.LOCAL_VARIABLE_VF);
+//                valueFeatures.add(SchemaFeature.LOCAL_VARIABLE_VF);
 //            else
-//                valueFeatures.add(ValueFeature.GLOBAL_VARIABLE_VF);
+//                valueFeatures.add(SchemaFeature.GLOBAL_VARIABLE_VF);
 //        }
-        // fixme: i feel this may be incorrect
+        if (valueStr.contains("length") || valueStr.contains("size"))
+            valueFeatures.add(ValueFeature.SIZE_LITERAL_VF);
+        // i feel this may be incorrect todo check
         if (E.getElements(new TypeFilter<>(CtField.class)).size() > 0)
             valueFeatures.add(ValueFeature.MEMBER_VF);
         if (E instanceof CtLiteral) {
@@ -183,8 +180,9 @@ public class OriginalFeatureExtractor implements FeatureExtractor {
                 return v1;
             }));
         }
-        FeatureVector featureVector = new FeatureVector(FeatureOption.ORIGINAL);
 
+        // this will be merged so we do not care about this value named marked
+        FeatureVector featureVector = new FeatureVector(false);
         // RepairFeatureNum     = RepairFeatureNum                      = 5
         EnumSet<RepairFeature> repairFeatures = getRepairFeatures(repair);
         // ModKind should be synonyms of RepairType
@@ -294,7 +292,7 @@ public class OriginalFeatureExtractor implements FeatureExtractor {
             Set<ValueFeature> valueFeatures = getValueFeature(key, repair, valueExprInfo);
             for (Feature atomicFeature : atomicFeatures) {
                 for (Feature valueFeature : valueFeatures) {
-                    // AF_VF_CT
+                    // RF_SF_CT
                     List<Feature> valueCrossFeature = new ArrayList<>();
                     valueCrossFeature.add(atomicFeature);
                     valueCrossFeature.add(valueFeature);

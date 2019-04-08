@@ -1,5 +1,6 @@
 package fr.inria.prophet4j.defined.original;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,7 +9,8 @@ import fr.inria.prophet4j.defined.FeatureCross;
 
 import static fr.inria.prophet4j.defined.original.OriginalFeature.*;
 
-public class OriginalFeatureCross implements FeatureCross {
+public class OriginalFeatureCross implements FeatureCross, Serializable {
+    static final long serialVersionUID = 1L;
     private Integer id;
     private List<Feature> features;
 
@@ -45,7 +47,6 @@ public class OriginalFeatureCross implements FeatureCross {
 
     public OriginalFeatureCross(CrossType crossType, List<Feature> features) {
         int ordinal0, ordinal1, ordinal2;
-
         switch (crossType) {
             case RF_CT:
                 assert features.size() == 1;

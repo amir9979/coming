@@ -1,115 +1,73 @@
 package fr.inria.prophet4j.defined;
 
 import fr.inria.prophet4j.defined.extended.ExtendedFeature;
-import fr.inria.prophet4j.defined.extended.ExtendedFeatureCross;
 import fr.inria.prophet4j.defined.original.OriginalFeature;
-import fr.inria.prophet4j.defined.original.OriginalFeatureCross;
+import fr.inria.prophet4j.utility.Option.FeatureOption;
 import org.apache.commons.io.FileUtils;
 import spoon.reflect.declaration.CtElement;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.util.*;
 
 public interface Structure {
-    enum FeatureOption {
-        EXTENDED,
-        ORIGINAL,
-    }
-
     class Sample { // namely TrainingCase
         private String filePath;
-        private FeatureOption featureOption;
+        private List<FeatureVector> featureVectors;
 
         public Sample(String filePath) {
             this.filePath = filePath;
-            this.featureOption = null;
+            this.featureVectors = new ArrayList<>();
         }
 
-        public Sample(String filePath, FeatureOption featureOption) {
-            this.filePath = filePath;
-            this.featureOption = featureOption;
+        public List<FeatureVector> getFeatureVectors() {
+            return featureVectors;
         }
 
-        public List<FeatureVector> loadFeatureVectors() {
+        public void loadFeatureVectors() {
             try {
-                // the first one is for human patch, others are for candidate patches
-                File vectorFile = new File(filePath);
-                List<FeatureVector> featureVectors = new ArrayList<>();
-                String string = FileUtils.readFileToString(vectorFile, Charset.defaultCharset());
-                StringTokenizer stringTokenizer = new StringTokenizer(string, "\n");
-                while (stringTokenizer.hasMoreTokens()) {
-                    featureVectors.add(new FeatureVector(stringTokenizer.nextToken(), featureOption));
-                }
-                // we deduplicate FeatureVectors as they should have no positive effect
-                // we make sure the first one is for human patch by using LinkedHashSet
-                Set<FeatureVector> linkedHashSet = new LinkedHashSet<>(featureVectors.size());
-                linkedHashSet.addAll(featureVectors);
-                featureVectors.clear();
-                featureVectors.addAll(linkedHashSet);
-                // todo: I need to ensure featureVectors.size() always larger than 1
-                return featureVectors;
-            } catch (IOException ex) {
-                ex.printStackTrace();
+                FileInputStream fis = new FileInputStream(filePath);
+                ObjectInputStream ois = new ObjectInputStream(fis);
+                featureVectors = (List<FeatureVector>) ois.readObject();
+                ois.close();
+                fis.close();
+            } catch (ClassNotFoundException | IOException e) {
+                e.printStackTrace();
             }
-            return new ArrayList<>();
         }
 
         public void saveFeatureVectors(List<FeatureVector> featureVectors) {
             try {
-                File vectorFile = new File(filePath);
-                StringJoiner stringJoiner = new StringJoiner("\n");
-                for (FeatureVector featureVector : featureVectors) {
-                    StringJoiner subStringJoiner = new StringJoiner(" ");
-                    for (int featureCrossId : featureVector.featureArray) {
-                        subStringJoiner.add(String.valueOf(featureCrossId));
-                    }
-                    stringJoiner.add(subStringJoiner.toString());
+                File file = new File(filePath);
+                if (!file.exists()) {
+                    file.getParentFile().mkdirs();
                 }
-                FileUtils.writeStringToFile(vectorFile, stringJoiner.toString(), Charset.defaultCharset(), true);
-            } catch (IOException ex) {
-                ex.printStackTrace();
+                FileOutputStream fos = new FileOutputStream(filePath);
+                ObjectOutputStream oos = new ObjectOutputStream(fos);
+                oos.writeObject(featureVectors);
+                oos.flush();
+                oos.close();
+                fos.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+        }
+
+        @Override
+        public String toString() {
+            return filePath;
         }
     }
 
-    class FeatureVector {
-        private int arraySize = 0;
-        private int[] featureArray;
+    class FeatureVector implements Serializable {
+        static final long serialVersionUID = 1L;
+        // if marked then this is for human repair
+        private boolean marked;
         private Set<FeatureCross> featureCrosses;
 
-        public FeatureVector(FeatureOption featureOption) {
-            switch (featureOption) {
-                case EXTENDED:
-                    this.arraySize = ExtendedFeature.FEATURE_SIZE;
-                    break;
-                case ORIGINAL:
-                    this.arraySize = OriginalFeature.FEATURE_SIZE;
-                    break;
-            }
-            this.featureArray = new int[this.arraySize];
+        public FeatureVector(boolean marked) {
+            this.marked = marked;
             this.featureCrosses = new HashSet<>();
-        }
-
-        public FeatureVector(String string, FeatureOption featureOption) {
-            this(featureOption);
-            String[] substrings = string.split(" ");
-            assert substrings.length == this.arraySize;
-            for (int i = 0; i < this.arraySize; i++) {
-                int value = Integer.valueOf(substrings[i]);
-                this.featureArray[i] = value;
-                if (value == 1) {
-                    switch (featureOption) {
-                        case EXTENDED:
-                            this.featureCrosses.add(new ExtendedFeatureCross(i));
-                            break;
-                        case ORIGINAL:
-                            this.featureCrosses.add(new OriginalFeatureCross(i));
-                            break;
-                    }
-                }
-            }
         }
 
         public boolean containFeature(Feature feature) {
@@ -122,20 +80,22 @@ public interface Structure {
         }
 
         public void addFeatureCross(FeatureCross featureCross) {
-            featureArray[featureCross.getId()] = 1;
             featureCrosses.add(featureCross);
         }
 
-        public Set<FeatureCross> getFeatureCrosses() {
-            return featureCrosses;
+        // if we return set directly, results would be unpredictable. DO NOT return set directly
+        public List<FeatureCross> getFeatureCrosses() {
+            List<FeatureCross> list = new ArrayList<>(featureCrosses);
+            list.sort(Comparator.comparingInt(FeatureCross::getId));
+            return list;
         }
 
-        public Set<Integer> getFeatureCrossIds() {
-            Set<Integer> featureCrossIds = new HashSet<>();
-            for (FeatureCross featureCross : getFeatureCrosses()) {
-                featureCrossIds.add(featureCross.getId());
-            }
-            return featureCrossIds;
+        public boolean isMarked() {
+            return this.marked;
+        }
+
+        public void merge(FeatureVector featureVector) {
+            this.featureCrosses.addAll(featureVector.getFeatureCrosses());
         }
 
         public double score(ParameterVector parameterVector) {
@@ -149,6 +109,7 @@ public interface Structure {
     }
 
     class ParameterVector {
+        public double gamma = 0;
         private int arraySize = 0;
         private double[] parameterArray;
 
@@ -172,8 +133,19 @@ public interface Structure {
             return parameterArray[index];
         }
 
-        public void set(int index, double value) {
-            parameterArray[index] = value;
+        // +=
+        public void inc(int index, double value) {
+            parameterArray[index] += value;
+        }
+
+        // -=
+        public void dec(int index, double value) {
+            parameterArray[index] -= value;
+        }
+
+        // /=
+        public void div(int index, double value) {
+            parameterArray[index] /= value;
         }
 
         public void clone(ParameterVector parameterVector) {
@@ -184,34 +156,33 @@ public interface Structure {
         public double dotProduct(FeatureVector featureVector) {
             double res = 0;
             for (FeatureCross featureCross : featureVector.getFeatureCrosses()) {
-                res += parameterArray[featureCross.getId()];
+                int featureCrossId = featureCross.getId();
+                res += parameterArray[featureCrossId];
             }
             return res;
         }
 
-        public void load(File vectorFile) {
+        public void load(String filePath) {
             try {
-                List<Double> parameterList = new ArrayList<>();
+                File vectorFile = new File(filePath);
                 String string = FileUtils.readFileToString(vectorFile, Charset.defaultCharset());
-                StringTokenizer stringTokenizer = new StringTokenizer(string, " ");
-                while (stringTokenizer.hasMoreTokens()) {
-                    parameterList.add(Double.valueOf(stringTokenizer.nextToken()));
-                }
-                parameterArray = parameterList.stream().mapToDouble(Double::doubleValue).toArray();
-            } catch (IOException ex) {
-                ex.printStackTrace();
+                String[] substrings = string.split(" ");
+                parameterArray = Arrays.stream(substrings).mapToDouble(Double::valueOf).toArray();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
 
-        public void save(File vectorFile) {
+        public void save(String filePath) {
             try {
                 StringJoiner stringJoiner = new StringJoiner(" ");
                 for (double parameter : parameterArray) {
                     stringJoiner.add(String.valueOf(parameter));
                 }
-                FileUtils.writeStringToFile(vectorFile, stringJoiner.toString(), Charset.defaultCharset(), true);
-            } catch (IOException ex) {
-                ex.printStackTrace();
+                File vectorFile = new File(filePath);
+                FileUtils.writeStringToFile(vectorFile, stringJoiner.toString(), Charset.defaultCharset(), false);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }

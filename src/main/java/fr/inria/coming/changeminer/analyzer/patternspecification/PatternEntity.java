@@ -8,10 +8,11 @@ package fr.inria.coming.changeminer.analyzer.patternspecification;
 public class PatternEntity {
 
 	public final static String ANY = "*";
-
+	protected int id;
 	protected String entityType = ANY;
 	protected String newValue = null;
 	protected String oldValue = null;
+	protected String roleInParent = ANY;
 
 	protected ParentPatternEntity parent = null;
 
@@ -81,6 +82,22 @@ public class PatternEntity {
 
 	public void setOldValue(String oldValue) {
 		this.oldValue = oldValue;
+	}
+
+	public int getId() {
+		return id;
+	}
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public String getRoleInParent() {
+		return roleInParent;
+	}
+
+	public void setRoleInParent(String roleInParent) {
+		this.roleInParent = roleInParent;
 	}
 
 }

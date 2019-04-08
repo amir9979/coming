@@ -4,10 +4,10 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.List;
 
+import fr.inria.prophet4j.utility.Option;
 import org.junit.Test;
 
 import fr.inria.prophet4j.defined.Feature;
-import fr.inria.prophet4j.defined.Structure.FeatureOption;
 import fr.inria.prophet4j.defined.Structure.FeatureVector;
 import fr.inria.prophet4j.defined.original.OriginalFeature.AtomicFeature;
 import fr.inria.prophet4j.defined.original.OriginalFeature.RepairFeature;
@@ -18,7 +18,7 @@ import fr.inria.prophet4j.defined.CodeDiffer;
 public class OriginalFeatureExtractorTest {
     private void test(Feature caseFeature, Feature checkFeature) {
         String str0, str1;
-        CodeDiffer helper = new CodeDiffer(false, FeatureOption.ORIGINAL);
+        CodeDiffer helper = new CodeDiffer(false, new Option());
         if (caseFeature instanceof AtomicFeature) {
             AtomicFeature atomicFeature = (AtomicFeature) caseFeature;
             switch (atomicFeature) {
@@ -132,7 +132,7 @@ public class OriginalFeatureExtractorTest {
                     test(AtomicFeature.ASSIGN_ZERO_AF, checkFeature);
                     test(AtomicFeature.ASSIGN_CONST_AF, checkFeature);
                     break;
-                case DEREF_AF: // these is another uncompleted case of DEREF_AF
+                case DEREF_AF: // these is another uncompleted case of DEREF_TF
                     str0 = "class Foo{public void bar(){\nint[] a={1};\nint b=0;\n}}";
                     str1 = "class Foo{public void bar(){\nint[] a={1};\nint b=0;\nb=a[0];\n}}";
                     assertEquals(Boolean.TRUE, check(helper.func4Test(str0, str1), checkFeature));
@@ -230,8 +230,8 @@ public class OriginalFeatureExtractorTest {
                     str1 = "class Foo{public void bar(){\nboolean a=true;\nreturn 1;\n}}";
                     assertEquals(Boolean.TRUE, check(helper.func4Test(str0, str1), checkFeature));
                     break;
-                case ADDRESS_OF_AF: // Inapplicable to Java
-                    break;
+//                case ADDRESS_OF_AF: // Inapplicable to Java
+//                    break;
             }
         }
         if (caseFeature instanceof RepairFeature) {
@@ -315,10 +315,10 @@ public class OriginalFeatureExtractorTest {
                     str1 = "class Foo{public void bar(){\nString a=\"a\";\nint b=a.length()\n}}";
                     assertEquals(Boolean.TRUE, check(helper.func4Test(str0, str1), checkFeature));
                     break;
-                case POINTER_VF: // Inapplicable to Java
-                    break;
-                case STRUCT_POINTER_VF: // Inapplicable to Java
-                    break;
+//                case POINTER_VF: // Inapplicable to Java
+//                    break;
+//                case STRUCT_POINTER_VF: // Inapplicable to Java
+//                    break;
             }
         }
     }

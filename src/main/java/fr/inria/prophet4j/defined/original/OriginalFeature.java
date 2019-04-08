@@ -3,15 +3,14 @@ package fr.inria.prophet4j.defined.original;
 import fr.inria.prophet4j.defined.Feature;
 
 public interface OriginalFeature extends Feature {
-    int AF_SIZE = AtomicFeature.values().length;
-    int RF_SIZE = RepairFeature.values().length;
-    int VF_SIZE = ValueFeature.values().length;
+    int AF_SIZE = AtomicFeature.values().length; // 33
+    int RF_SIZE = RepairFeature.values().length; // 5
+    int VF_SIZE = ValueFeature.values().length; // 10
 
     int FEATURE_BASE_0 = 0;
     int FEATURE_BASE_1 = FEATURE_BASE_0 + RF_SIZE;
     int FEATURE_BASE_2 = FEATURE_BASE_1 + POS_SIZE * AF_SIZE * RF_SIZE;
     int FEATURE_BASE_3 = FEATURE_BASE_2 + POS_SIZE * AF_SIZE * AF_SIZE;
-    // number of all possible features
     int FEATURE_SIZE = FEATURE_BASE_3 + AF_SIZE * VF_SIZE;
 
     enum CrossType implements OriginalFeature {
@@ -22,7 +21,6 @@ public interface OriginalFeature extends Feature {
     }
 
     enum AtomicFeature implements OriginalFeature {
-        // todo: consider OperatorAssignment cases, namely CommutativeOp += -= *= /= %=
         OP_ADD_AF, // +a a+b +=
         OP_SUB_AF, // -a a-b -=
         OP_MUL_AF, // a*b *=
@@ -44,7 +42,7 @@ public interface OriginalFeature extends Feature {
         // EXCLUDE_ATOM_AF, // not include
         // OPERATE_LHS_AF, // a+ a- a* a/ a% a&& a|| ...
         // OPERATE_RHS_AF, // +a -a *a /a %a &&a ||a ...
-        CHANGED_AF, // ++a --a a++ a--
+        CHANGED_AF, // ++a --a a++ a-- += -= *= /= =
         DEREF_AF, // []
         INDEX_AF, // []
         MEMBER_ACCESS_AF, // [] * & . -> (only .)
@@ -57,11 +55,11 @@ public interface OriginalFeature extends Feature {
         STMT_CALL_AF, // print()
         STMT_COND_AF, // if ...
         STMT_CONTROL_AF, // break continue return throw
-        R_STMT_ASSIGN_AF, // replace version of STMT_ASSIGN_AF
-        R_STMT_CALL_AF, // replace version of STMT_CALL_AF
-        R_STMT_COND_AF, // replace version of STMT_COND_AF
-        R_STMT_CONTROL_AF, // replace version of STMT_CONTROL_AF
-        ADDRESS_OF_AF, // Inapplicable to Java
+        R_STMT_ASSIGN_AF, // replace version
+        R_STMT_CALL_AF, // replace version
+        R_STMT_COND_AF, // replace version
+        R_STMT_CONTROL_AF, // replace version
+//        ADDRESS_OF_AF, // Inapplicable to Java
     }
 
     enum RepairFeature implements OriginalFeature {
@@ -95,7 +93,7 @@ public interface OriginalFeature extends Feature {
          */
         REPLACE_STMT_RF,
         // DELETE_STMT_RF, // case of delete one statement
-        // UNKNOWN_STMT_RF, // other unknown operations like move one statement or else
+        // UNKNOWN_STMT_RF, // other unknown operations like moving one statement
     }
 
     enum ValueFeature implements OriginalFeature {
@@ -109,7 +107,7 @@ public interface OriginalFeature extends Feature {
         NONZERO_CONST_VF,
         STRING_LITERAL_VF,
         SIZE_LITERAL_VF,
-        POINTER_VF, // Inapplicable to Java
-        STRUCT_POINTER_VF, // Inapplicable to Java
+//        POINTER_VF, // Inapplicable to Java
+//        STRUCT_POINTER_VF, // Inapplicable to Java
     }
 }

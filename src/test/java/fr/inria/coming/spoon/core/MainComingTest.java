@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -24,10 +25,12 @@ import fr.inria.coming.changeminer.analyzer.commitAnalyzer.HunkDifftAnalyzer;
 import fr.inria.coming.changeminer.entity.CommitFinalResult;
 import fr.inria.coming.changeminer.entity.FinalResult;
 import fr.inria.coming.changeminer.entity.IRevision;
+import fr.inria.coming.core.engine.callback.IntermediateResultProcessorCallback;
 import fr.inria.coming.core.entities.DiffResult;
 import fr.inria.coming.core.entities.HunkDiff;
 import fr.inria.coming.core.entities.RevisionResult;
 import fr.inria.coming.core.entities.interfaces.Commit;
+import fr.inria.coming.core.entities.interfaces.FileCommit;
 import fr.inria.coming.core.entities.interfaces.IFilter;
 import fr.inria.coming.core.entities.output.JSonChangeFrequencyOutput;
 import fr.inria.coming.core.filter.commitmessage.BugfixKeywordsFilter;
@@ -50,6 +53,13 @@ import gumtree.spoon.diff.Diff;
  *
  */
 public class MainComingTest {
+	final String[] commitsId = new String[] { "60b54977abe45f662daaa80ebfdf63ab4fe3a9b2",
+			"ab71649c481971a9ad54f04797f5fd9cb133789b", "8d94514f4d888b7b4e8abd0d77b974a0c8e3baad",
+			"4120ab0c714911a9c9f26b591cb3222eaf57d127", "8c0e7110c9ebc3ba5158e8de0f73c80ec69e1001",
+			"646b3ad20d94d2b63335d1ae4c98980be274d703", "c8cf81ce1f01d4cb213b389a7b85aa13634b7d95",
+			"656aaf4049092218f99d035450ee59c40a0e1fbc", "01dd29c37f6044d9d1126d9db55a961cccaccfb7",
+			"6dac8ae81bd03bcae1e1fade064d3bb03de472c0", "fe76517014e580ddcb40ac04ea824d54ba741c8b",
+			"c6b1cd8204b10c324b92cdc3e44fe3ab6cfb1f5e", "e56c63bd77e289266989ee35a3369c6374275c64" };
 
 	@Before
 	public void setUp() throws Exception {
@@ -128,6 +138,86 @@ public class MainComingTest {
 		nrHunks = 1;
 		commitId = "4120ab0c714911a9c9f26b591cb3222eaf57d127";
 		assertCommit(commits, nrHunks, commitId);
+
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testOrderOutput() throws Exception {
+		ComingMain cm = new ComingMain();
+		Object result = cm.run(new String[] { "-location", "repogit4testv0", "-hunkanalysis", "true" });
+		assertNotNull(result);
+		assertTrue(result instanceof CommitFinalResult);
+		CommitFinalResult cfres = (CommitFinalResult) result;
+		Map<Commit, RevisionResult> commits = cfres.getAllResults();
+
+		List<String> commitsInOrder = new ArrayList<>();
+		for (String commit : this.commitsId) {
+			commitsInOrder.add(commit);
+		}
+
+		int currentIndex = 0;
+		for (Commit commit : commits.keySet()) {
+
+			assertEquals(currentIndex, commitsInOrder.indexOf(commit.getName()));
+			currentIndex++;
+		}
+
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testIntermediateCallback1() throws Exception {
+		ComingMain cm = new ComingMain();
+		Boolean created = cm.createEngine(new String[] { "-location", "repogit4testv0", "-hunkanalysis", "true" });
+		assertTrue(created);
+		List<String> commitsInOrder = new ArrayList<>();
+		for (String commit : this.commitsId) {
+			commitsInOrder.add(commit);
+		}
+		cm.registerIntermediateCallback(new IntermediateResultProcessorCallback() {
+			int currentIndex = 0;
+
+			@Override
+			public void handleResult(RevisionResult result) {
+				assertEquals(currentIndex, commitsInOrder.indexOf(result.getRelatedRevision().getName()));
+				System.out.println("callback " + currentIndex);
+				currentIndex++;
+
+			}
+		});
+		// Start the analysis
+		FinalResult finalresult = cm.start();
+		assertNotNull(finalresult);
+
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testAssertCommitRemovedFile() throws Exception {
+		ComingMain cm = new ComingMain();
+		Object result = cm.run(new String[] { "-location", "repogit4testv0", "-hunkanalysis", "true" });
+		assertNotNull(result);
+		assertTrue(result instanceof CommitFinalResult);
+		CommitFinalResult cfres = (CommitFinalResult) result;
+		Map<Commit, RevisionResult> commits = cfres.getAllResults();
+
+		Commit c_e56c63bd77e289266989ee35a3369c6374275c64 = commits.keySet().stream()
+				.filter(e -> e.getName().equals("e56c63bd77e289266989ee35a3369c6374275c64")).findFirst().get();
+		assertNotNull(c_e56c63bd77e289266989ee35a3369c6374275c64);
+		assertTrue(c_e56c63bd77e289266989ee35a3369c6374275c64.getFileCommits().size() > 0);
+		FileCommit fc = c_e56c63bd77e289266989ee35a3369c6374275c64.getFileCommits().stream()
+				.filter(e -> e.getPreviousFileName().contains("CharSequenceUtils.java")).findFirst().get();
+
+		assertNotNull(fc.getPreviousVersion());
+		assertFalse(fc.getPreviousVersion().isEmpty());
+		assertNotNull(fc.getPreviousFileName());
+		assertFalse(fc.getPreviousFileName().isEmpty());
+
+		assertNotNull(fc.getNextVersion());
+		assertTrue(fc.getNextVersion().isEmpty());
+		assertNotNull(fc.getNextFileName());
+		assertTrue(fc.getNextFileName().isEmpty());
 
 	}
 
@@ -444,8 +534,8 @@ public class MainComingTest {
 		ComingMain cm = new ComingMain();
 		Object result = cm.run(new String[] { "-location", "repogit4testv0",
 
-				"-mode", MyTestAnalyzer.class.getName() + ":" + HunkDifftAnalyzer.class.getName(),
-				"-parameters", "maxrevision:0" });
+				"-mode", MyTestAnalyzer.class.getName() + ":" + HunkDifftAnalyzer.class.getName(), "-parameters",
+				"maxrevision:0" });
 
 		assertEquals(2, cm.getExperiment().getAnalyzers().size());
 		MyTestAnalyzer cmanalyzer = (MyTestAnalyzer) cm.getExperiment().getAnalyzers().stream()

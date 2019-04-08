@@ -149,10 +149,11 @@ public class InstanceMiningTest {
 			DiffResult<Commit, Diff> diffs = (DiffResult<Commit, Diff>) commitResult.getAllResults().get(commit)
 					.getResultFromClass(FineGrainDifftAnalyzer.class);
 			assertNotNull(diffs);
-
+			// firsts commits, no changes, file introduction
 			if ("60b54977abe45f662daaa80ebfdf63ab4fe3a9b2".equals(commit.getName())
-					|| "ab71649c481971a9ad54f04797f5fd9cb133789b".equals(commit.getName())) {
-				// firsts commits, no changes, file introduction
+					|| "ab71649c481971a9ad54f04797f5fd9cb133789b".equals(commit.getName())
+					// Commit removement
+					|| "e56c63bd77e289266989ee35a3369c6374275c64".equals(commit.getName())) {
 				assertTrue(diffs.getAll().isEmpty());
 			} else
 				assertTrue("Not changes at: " + commit.getName(), diffs.getAll().size() > 0);
@@ -188,12 +189,15 @@ public class InstanceMiningTest {
 					.get(commit).getResultFromClass(PatternInstanceAnalyzer.class);
 			assertNotNull(patterns);
 
+			// firsts commits, no changes, file introduction
 			if ("60b54977abe45f662daaa80ebfdf63ab4fe3a9b2".equals(commit.getName())
-					|| "ab71649c481971a9ad54f04797f5fd9cb133789b".equals(commit.getName())) {
-				// firsts commits, no changes, file introduction
+					|| "ab71649c481971a9ad54f04797f5fd9cb133789b".equals(commit.getName())
+					// file removement, no changes
+					|| "e56c63bd77e289266989ee35a3369c6374275c64".equals(commit.getName())) {
+
 				assertTrue(patterns.getInfoPerDiff().isEmpty());
 			} else
-				assertTrue("Not changes at: " + commit.getName(), patterns.getInfoPerDiff().size() > 0);
+				assertTrue("Wrong: Not changes at: " + commit.getName(), patterns.getInfoPerDiff().size() > 0);
 
 			for (PatternInstancesFromDiff instancesdiff : patterns.getInfoPerDiff()) {
 				assertTrue(instancesdiff.getInstances().size() > 0);
@@ -235,6 +239,28 @@ public class InstanceMiningTest {
 		possitiveCommits.add("c8cf81ce1f01d4cb213b389a7b85aa13634b7d95");
 
 		runnerMainPatterngeneric(ActionType.INS.toString(), "Literal", null, "Assignment", 10, possitiveCommits);
+	}
+
+	@Test
+	public void testMainPattern1LiteralRunnerSingleOutput() throws Exception {
+
+		Set<String> possitiveCommits = new HashSet<>();
+		possitiveCommits.add("c8cf81ce1f01d4cb213b389a7b85aa13634b7d95");
+
+		ComingMain main = new ComingMain();
+
+		CommandSummary cs = new CommandSummary();
+		cs.append("-location", "repogit4testv0");
+		cs.append("-mode", "mineinstance");
+		FinalResult finalResult = null;
+
+		cs.command.put("-action", ActionType.INS.toString());
+		cs.command.put("-entitytype", "Literal");
+
+		cs.command.put("-parenttype", "Assignment");
+		cs.command.put("-parameters", "outputperrevision:true");
+
+		finalResult = main.run(cs.flat());
 	}
 
 	@Test

@@ -1,11 +1,6 @@
 package fr.inria.prophet4j.defined.extended;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import fr.inria.prophet4j.defined.Feature;
 import fr.inria.prophet4j.defined.Feature.Position;
@@ -13,7 +8,6 @@ import fr.inria.prophet4j.defined.extended.ExtendedFeature.CrossType;
 import fr.inria.prophet4j.defined.extended.ExtendedFeature.AtomicFeature;
 import fr.inria.prophet4j.defined.extended.ExtendedFeature.RepairFeature;
 import fr.inria.prophet4j.defined.extended.ExtendedFeature.ValueFeature;
-import fr.inria.prophet4j.defined.Structure.FeatureOption;
 import fr.inria.prophet4j.defined.Structure.FeatureVector;
 import fr.inria.prophet4j.defined.Structure.Repair;
 import fr.inria.prophet4j.defined.extended.util.ExtendedFeatureVisitor;
@@ -100,8 +94,6 @@ public class ExtendedFeatureExtractor implements FeatureExtractor {
                 }
             }
         }
-        if (valueStr.contains("length") || valueStr.contains("size"))
-            valueFeatures.add(ValueFeature.SIZE_LITERAL_VF);
         assert(valueExprInfo.containsKey(valueStr));
         CtElement E = valueExprInfo.get(valueStr);
         if (E instanceof CtVariableAccess || E instanceof CtArrayAccess || E instanceof CtLocalVariable) {
@@ -111,40 +103,105 @@ public class ExtendedFeatureExtractor implements FeatureExtractor {
                 valueFeatures.add(ValueFeature.GLOBAL_VARIABLE_VF);
             }
         } else if (E instanceof CtExecutableReference){
-            // fixme: ...
-            // to make CALLEE_AF be meaningful
+            // to make CALLEE_AF be meaningful todo improve
             if (((CtExecutableReference) E).getParameters().size() > 0){
                 valueFeatures.add(ValueFeature.LOCAL_VARIABLE_VF);
             }
         } else if (E instanceof CtIf){
-            // fixme: ...
-            // to make R_STMT_COND_AF be meaningful
+            // to make R_STMT_COND_AF be meaningful todo improve
             valueFeatures.add(ValueFeature.LOCAL_VARIABLE_VF);
         }
 //        if (E instanceof CtVariable) {
 //            if (E instanceof CtLocalVariable)
-//                valueFeatures.add(ValueFeature.LOCAL_VARIABLE_VF);
+//                valueFeatures.add(SchemaFeature.LOCAL_VARIABLE_VF);
 //            else
-//                valueFeatures.add(ValueFeature.GLOBAL_VARIABLE_VF);
+//                valueFeatures.add(SchemaFeature.GLOBAL_VARIABLE_VF);
 //        } else if (E instanceof CtVariableReference) {
 //            if (E instanceof CtLocalVariableReference)
-//                valueFeatures.add(ValueFeature.LOCAL_VARIABLE_VF);
+//                valueFeatures.add(SchemaFeature.LOCAL_VARIABLE_VF);
 //            else
-//                valueFeatures.add(ValueFeature.GLOBAL_VARIABLE_VF);
+//                valueFeatures.add(SchemaFeature.GLOBAL_VARIABLE_VF);
 //        }
-        // fixme: i feel this may be incorrect
+        if (valueStr.contains("get"))
+            valueFeatures.add(ValueFeature.LI_GET_VF);
+        if (valueStr.contains("size"))
+            valueFeatures.add(ValueFeature.LI_SIZE_VF);
+        if (valueStr.contains("length"))
+            valueFeatures.add(ValueFeature.LI_LENGTH_VF);
+        if (valueStr.contains("equals"))
+            valueFeatures.add(ValueFeature.LI_EQUALS_VF);
+        // i feel this may be incorrect todo check
         if (E.getElements(new TypeFilter<>(CtField.class)).size() > 0)
             valueFeatures.add(ValueFeature.MEMBER_VF);
         if (E instanceof CtLiteral) {
             Object value = ((CtLiteral)E).getValue();
-            if (value instanceof String) {
-                valueFeatures.add(ValueFeature.STRING_LITERAL_VF);
-            } else if (value instanceof Integer) { // ?
-                if ((Integer) value == 0) {
-                    valueFeatures.add(ValueFeature.ZERO_CONST_VF);
-                } else {
-                    valueFeatures.add(ValueFeature.NONZERO_CONST_VF);
+            if (value == null) {
+                valueFeatures.add(ValueFeature.LV_NULL_VF);
+            }
+            if (value instanceof Byte) {
+                if ((Byte) value == 0) {
+                    valueFeatures.add(ValueFeature.LV_ZERO_VF);
                 }
+                valueFeatures.add(ValueFeature.LT_BYTE_VF);
+            } else if (value instanceof Character) {
+                if ((Character) value == 0) {
+                    valueFeatures.add(ValueFeature.LV_ZERO_VF);
+                }
+                valueFeatures.add(ValueFeature.LT_CHAR_VF);
+            } else if (value instanceof Short) {
+                if ((Short) value == 0) {
+                    valueFeatures.add(ValueFeature.LV_ZERO_VF);
+                }
+                valueFeatures.add(ValueFeature.LT_SHORT_VF);
+            } else if (value instanceof Integer) {
+                if ((Integer) value == 0) {
+                    valueFeatures.add(ValueFeature.LV_ZERO_VF);
+                }
+                valueFeatures.add(ValueFeature.LT_INT_VF);
+            } else if (value instanceof Long) {
+                if ((Long) value == 0) {
+                    valueFeatures.add(ValueFeature.LV_ZERO_VF);
+                }
+                valueFeatures.add(ValueFeature.LT_LONG_VF);
+            } else if (value instanceof Float) {
+                if ((Float) value == 0.0) {
+                    valueFeatures.add(ValueFeature.LV_ZERO_VF);
+                }
+                valueFeatures.add(ValueFeature.LT_FLOAT_VF);
+            } else if (value instanceof Double) {
+                if ((Double) value == 0.0) {
+                    valueFeatures.add(ValueFeature.LV_ZERO_VF);
+                }
+                valueFeatures.add(ValueFeature.LT_DOUBLE_VF);
+            } else if (value instanceof Boolean) {
+                valueFeatures.add(ValueFeature.LT_BOOLEAN_VF);
+            } else if (value instanceof Enum) {
+                valueFeatures.add(ValueFeature.LT_ENUM_VF);
+            } else if (value instanceof String) {
+                if (((String) value).equals("")) {
+                    valueFeatures.add(ValueFeature.LV_BLANK_VF);
+                }
+                valueFeatures.add(ValueFeature.LT_STRING_VF);
+            } else if (value instanceof List) {
+                if (((List) value).isEmpty()) {
+                    valueFeatures.add(ValueFeature.LV_EMPTY_VF);
+                }
+                valueFeatures.add(ValueFeature.LT_LIST_VF);
+            } else if (value instanceof Map) {
+                if (((Map) value).isEmpty()) {
+                    valueFeatures.add(ValueFeature.LV_EMPTY_VF);
+                }
+                valueFeatures.add(ValueFeature.LT_MAP_VF);
+            } else if (value instanceof Queue) {
+                if (((Queue) value).isEmpty()) {
+                    valueFeatures.add(ValueFeature.LV_EMPTY_VF);
+                }
+                valueFeatures.add(ValueFeature.LT_QUEUE_VF);
+            } else if (value instanceof Set) {
+                if (((Set) value).isEmpty()) {
+                    valueFeatures.add(ValueFeature.LV_EMPTY_VF);
+                }
+                valueFeatures.add(ValueFeature.LT_SET_VF);
             }
         }
         return valueFeatures;
@@ -183,8 +240,9 @@ public class ExtendedFeatureExtractor implements FeatureExtractor {
                 return v1;
             }));
         }
-        FeatureVector featureVector = new FeatureVector(FeatureOption.EXTENDED);
 
+        // this will be merged so we do not care about this value named marked
+        FeatureVector featureVector = new FeatureVector(false);
         // RepairFeatureNum     = RepairFeatureNum                      = 5
         EnumSet<RepairFeature> repairFeatures = getRepairFeatures(repair);
         // ModKind should be synonyms of RepairType
@@ -294,7 +352,7 @@ public class ExtendedFeatureExtractor implements FeatureExtractor {
             Set<ValueFeature> valueFeatures = getValueFeature(key, repair, valueExprInfo);
             for (Feature atomicFeature : atomicFeatures) {
                 for (Feature valueFeature : valueFeatures) {
-                    // AF_VF_CT
+                    // RF_SF_CT
                     List<Feature> valueCrossFeature = new ArrayList<>();
                     valueCrossFeature.add(atomicFeature);
                     valueCrossFeature.add(valueFeature);

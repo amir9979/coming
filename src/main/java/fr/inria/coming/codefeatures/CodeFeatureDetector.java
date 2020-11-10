@@ -28,7 +28,7 @@ public class CodeFeatureDetector {
 
         List<AbstractCodeAnalyzer> analyzers = new ArrayList<>();
 
-        analyzers.add(new VariableAnalyzer(infoElementStudy));
+//        analyzers.add(new VariableAnalyzer(infoElementStudy));
 
         analyzers.add(new BinaryOperatorAnalyzer(infoElementStudy));
 
@@ -38,7 +38,7 @@ public class CodeFeatureDetector {
 
         //	analyzers.add(new ExpressionAnalyzer(infoElementStudy));
 
-        analyzers.add(new LogicalExpressionAnalyzer(infoElementStudy));
+//        analyzers.add(new LogicalExpressionAnalyzer(infoElementStudy));
 
         analyzers.add(new TypeaccessAnalyzer(infoElementStudy));
 

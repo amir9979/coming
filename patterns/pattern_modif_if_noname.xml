@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<!-- This pattern must not have a name, used for testing -->
+<pattern>
+<entity id="1" type = "If"/>
+<entity id="2" type = "*">
+	<parent parentId="1" distance="10" />
+</entity>
+<action entityId ="2" type = "*" />
+</pattern>

@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<pattern name="INS_INV">
+<entity id="1" type = "Invocation"/>
+<action entityId ="1" type = "INS" />
+</pattern>

@@ -6,9 +6,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import fr.inria.coming.utils.EntityTypesInfoResolver;
+import javafx.scene.control.TextFormatter;
 import org.apache.log4j.Logger;
 
 import com.github.gumtreediff.actions.model.Action;
@@ -178,7 +180,8 @@ public class DetectorChangePatternInstanceEngine {
      * @return
      */
     public boolean validate(ChangePatternInstance instance) {
-        return checkAbsenceNotMappedAction(instance) && checkEntitiesUsedOne(instance);
+        return checkAbsenceNotMappedAction(instance)
+				&& checkEntitiesUsedOne(instance);
     }
 
     /**
@@ -495,7 +498,10 @@ public class DetectorChangePatternInstanceEngine {
 
     private boolean matchActionTypes(Action action, ActionType type) {
 
-        return ActionType.ANY.equals(type) || ActionType.UNCHANGED.equals(type)
+        return ActionType.ANY.equals(type)
+                || ActionType.UNCHANGED.equals(type)
+                || ActionType.UNCHANGED_HIGH_PRIORITY.equals(type)
+                || ActionType.UNCHANGED.equals(type)
                 || ActionType.UNCHANGED_HIGH_PRIORITY.equals(type)
                 || (type.equals(ActionType.INS) && (action instanceof Insert))
                 || (type.equals(ActionType.DEL) && (action instanceof Delete))
